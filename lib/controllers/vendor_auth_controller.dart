@@ -1,11 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mac_vendor_store/global_variables.dart';
 import 'package:mac_vendor_store/models/vendor.dart';
 import 'package:http/http.dart' as http;
+import 'package:mac_vendor_store/provider/vendor_provider.dart';
 import 'package:mac_vendor_store/services/manage_http_response.dart';
 import 'package:mac_vendor_store/views/main_vendor_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+final ProviderContainer providerContainer = ProviderContainer();
 
 class VendorAuthController {
   Future<void> signUpVendor({
@@ -63,7 +68,17 @@ class VendorAuthController {
       manageHttpResponse(
         response: response,
         context: context,
-        onSuccess: () {
+        onSuccess: () async {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          String token = jsonDecode(response.body)['token'];
+          await prefs.setString('auth_token', token);
+          final vendorJson = jsonDecode(response.body)['vendor'];
+          providerContainer
+              .read(vendorProvider.notifier)
+              .setVendor(jsonEncode(vendorJson));
+
+          await prefs.setString('vendor', jsonEncode(vendorJson));
+
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const MainVendorScreen()),
