@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mac_vendor_store/provider/vendor_provider.dart';
 import 'package:mac_vendor_store/views/main_vendor_screen.dart';
 import 'package:mac_vendor_store/views/screens/authentication/login_screen.dart';
-import 'package:mac_vendor_store/views/screens/authentication/register_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
