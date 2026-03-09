@@ -1,29 +1,35 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mac_vendor_store/controllers/product_controller.dart';
 import 'package:mac_vendor_store/controllers/subcategory_controller.dart';
 import 'package:mac_vendor_store/models/category.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mac_vendor_store/controllers/category_controller.dart';
 import 'package:mac_vendor_store/models/subcategory.dart';
+import 'package:mac_vendor_store/provider/vendor_provider.dart';
 
-class UploadScreen extends StatefulWidget {
+class UploadScreen extends ConsumerStatefulWidget {
   const UploadScreen({super.key});
 
   @override
-  State<UploadScreen> createState() => _UploadScreenState();
+  _UploadScreenState createState() => _UploadScreenState();
 }
 
-class _UploadScreenState extends State<UploadScreen> {
+class _UploadScreenState extends ConsumerState<UploadScreen> {
+  final ProductController _productController = ProductController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late Future<List<Category>> futureCategories;
   Future<List<Subcategory>>? futureSubcategories;
   Subcategory? selectedSubcategory;
   Category? selectedCategory;
-  String name = '';
-
-  dynamic _image;
+  late String productName;
+  late int productPrice;
+  late int quantity;
+  late String description;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -114,6 +120,9 @@ class _UploadScreenState extends State<UploadScreen> {
                   SizedBox(
                     width: 200,
                     child: TextFormField(
+                      onChanged: (value) {
+                        productName = value;
+                      },
                       validator: (value) {
                         if (value!.isEmpty) {
                           return 'Please enter product name';
@@ -133,6 +142,11 @@ class _UploadScreenState extends State<UploadScreen> {
                   SizedBox(
                     width: 200,
                     child: TextFormField(
+                      keyboardType: TextInputType.number,
+
+                      onChanged: (value) {
+                        productPrice = int.parse(value);
+                      },
                       validator: (value) {
                         if (value!.isEmpty) {
                           return 'Please enter product price';
@@ -152,6 +166,11 @@ class _UploadScreenState extends State<UploadScreen> {
                   SizedBox(
                     width: 200,
                     child: TextFormField(
+                      keyboardType: TextInputType.number,
+
+                      onChanged: (value) {
+                        quantity = int.parse(value);
+                      },
                       validator: (value) {
                         if (value!.isEmpty) {
                           return 'Please enter product quantity';
@@ -238,6 +257,9 @@ class _UploadScreenState extends State<UploadScreen> {
                   SizedBox(
                     width: 400,
                     child: TextFormField(
+                      onChanged: (value) {
+                        description = value;
+                      },
                       validator: (value) {
                         if (value!.isEmpty) {
                           return 'Please enter product description';
@@ -261,9 +283,32 @@ class _UploadScreenState extends State<UploadScreen> {
             Padding(
               padding: const EdgeInsets.all(15.0),
               child: InkWell(
-                onTap: () {
+                onTap: () async {
+                  final fullName = ref.read(vendorProvider)!.fullName;
+                  final vendorId = ref.read(vendorProvider)!.id;
                   if (_formKey.currentState!.validate()) {
-                    print('Form submitted');
+                    setState(() {
+                      isLoading = true;
+                    });
+                    await _productController.UploadProduct(
+                      productName: productName,
+                      productPrice: productPrice,
+                      quantity: quantity,
+                      description: description,
+                      category: selectedCategory!.name,
+                      vendorId: vendorId,
+                      fullName: fullName,
+                      subCategory: selectedSubcategory!.subcategoryName,
+                      pickedImages: images,
+                      context: context,
+                    ).whenComplete(() {
+                      setState(() {
+                        isLoading = false;
+                      });
+                      selectedCategory = null;
+                      selectedSubcategory = null;
+                      images.clear();
+                    });
                   } else {
                     print('Please fill in all fields');
                   }
@@ -276,15 +321,17 @@ class _UploadScreenState extends State<UploadScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
-                    child: Text(
-                      'Upload Product',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.7,
-                      ),
-                    ),
+                    child: isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'Upload Product',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.7,
+                            ),
+                          ),
                   ),
                 ),
               ),
