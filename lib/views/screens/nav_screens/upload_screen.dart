@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mac_vendor_store/controllers/category_controller.dart';
 import 'package:mac_vendor_store/models/subcategory.dart';
 import 'package:mac_vendor_store/provider/vendor_provider.dart';
+import 'package:mac_vendor_store/services/manage_http_response.dart';
 
 class UploadScreen extends ConsumerStatefulWidget {
   const UploadScreen({super.key});
@@ -284,8 +285,13 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
               padding: const EdgeInsets.all(15.0),
               child: InkWell(
                 onTap: () async {
-                  final fullName = ref.read(vendorProvider)!.fullName;
-                  final vendorId = ref.read(vendorProvider)!.id;
+                  final vendor = ref.read(vendorProvider);
+                  if (vendor == null) {
+                    showSnackBar(context, 'Please login first');
+                    return;
+                  }
+                  final fullName = vendor.fullName;
+                  final vendorId = vendor.id;
                   if (_formKey.currentState!.validate()) {
                     setState(() {
                       isLoading = true;

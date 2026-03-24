@@ -56,6 +56,7 @@ class ProductController {
           subCategory: subCategory,
           images: images,
         );
+        print(images);
         http.Response response = await http.post(
           Uri.parse("$uri/api/add-product"),
           body: product.toJson(),
