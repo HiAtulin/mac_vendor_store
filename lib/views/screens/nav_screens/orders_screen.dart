@@ -107,6 +107,14 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                   ),
                 ),
               ),
+              Positioned(
+                right: 20,
+                top: 50,
+                child: IconButton(
+                  onPressed: _fetchOrders,
+                  icon: Icon(Icons.refresh, color: Colors.white),
+                ),
+              ),
             ],
           ),
         ),
@@ -123,13 +131,15 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                     vertical: 25,
                   ),
                   child: InkWell(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => OrderDetailScreen(order: order),
                         ),
                       );
+                      // 当从订单详情页面返回时，刷新订单列表
+                      _fetchOrders();
                     },
                     child: Container(
                       width: 335,
@@ -286,9 +296,9 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                               child: Text(
                                                 order.delivered
                                                     ? "Delivered"
-                                                    : order.processing
-                                                    ? "Processing"
-                                                    : "Cancelled",
+                                                    : (order.processing
+                                                          ? "Processing"
+                                                          : "Cancelled"),
                                                 style: GoogleFonts.montserrat(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600,

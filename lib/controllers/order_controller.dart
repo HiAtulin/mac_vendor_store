@@ -47,4 +47,49 @@ class OrderController {
       showSnackBar(context, "Error deleting order $e");
     }
   }
+
+  Future<void> updateDeliveryStatus({
+    required String id,
+    required context,
+  }) async {
+    try {
+      http.Response response = await http.patch(
+        Uri.parse('$uri/api/orders/$id/delivered'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({'delivered': true, 'processing': false}),
+      );
+      manageHttpResponse(
+        response: response,
+        context: context,
+        onSuccess: () {
+          showSnackBar(context, "Order delivered successfully");
+        },
+      );
+    } catch (e) {
+      showSnackBar(context, "Error updating delivery status $e");
+    }
+  }
+
+  Future<void> cancelOrder({required String id, required context}) async {
+    try {
+      http.Response response = await http.patch(
+        Uri.parse('$uri/api/orders/$id/processing'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({'processing': false, 'delivered': false}),
+      );
+      manageHttpResponse(
+        response: response,
+        context: context,
+        onSuccess: () {
+          showSnackBar(context, "Order canceled successfully");
+        },
+      );
+    } catch (e) {
+      showSnackBar(context, "Error updating processing status $e");
+    }
+  }
 }

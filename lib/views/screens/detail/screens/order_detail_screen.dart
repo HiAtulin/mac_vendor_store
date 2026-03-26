@@ -1,22 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mac_vendor_store/controllers/order_controller.dart';
 import 'package:mac_vendor_store/models/order.dart';
+import 'package:mac_vendor_store/provider/order_provider.dart';
 
-class OrderDetailScreen extends StatefulWidget {
+class OrderDetailScreen extends ConsumerStatefulWidget {
   final Order order;
   const OrderDetailScreen({super.key, required this.order});
 
   @override
-  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+  ConsumerState<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
+  final OrderController orderController = OrderController();
+  late Order currentOrder;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    currentOrder = widget.order;
+    _loadOrderDetails();
+  }
+
+  Future<void> _loadOrderDetails() async {
+    try {
+      // 这里可以添加从API获取最新订单数据的逻辑
+      // 暂时使用传递过来的订单数据
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading order details: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final orders = ref.watch(orderProvider);
+    final updatedOrder = orders.firstWhere(
+      (element) => element.id == currentOrder.id,
+      orElse: () => currentOrder,
+    );
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Order Detail')),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.order.productName,
+          currentOrder.productName,
           style: GoogleFonts.montserrat(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -67,12 +108,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   Positioned(
                                     left: 10,
                                     top: 5,
-                                    child: Image.network(
-                                      widget.order.image,
-                                      width: 58,
-                                      height: 67,
-                                      fit: BoxFit.cover,
-                                    ),
+                                    child: currentOrder.image.isNotEmpty
+                                        ? Image.network(
+                                            currentOrder.image,
+                                            width: 58,
+                                            height: 67,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return Icon(
+                                                    Icons.image_not_supported,
+                                                    size: 40,
+                                                  );
+                                                },
+                                          )
+                                        : Icon(Icons.image, size: 40),
                                   ),
                                 ],
                               ),
@@ -98,7 +148,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                           SizedBox(
                                             width: double.infinity,
                                             child: Text(
-                                              widget.order.productName,
+                                              currentOrder.productName,
                                               style: GoogleFonts.montserrat(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w700,
@@ -110,7 +160,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                           Align(
                                             alignment: Alignment.centerLeft,
                                             child: Text(
-                                              widget.order.category,
+                                              currentOrder.category,
                                               style: GoogleFonts.montserrat(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
@@ -120,7 +170,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                           ),
                                           SizedBox(height: 2),
                                           Text(
-                                            "\$${widget.order.productPrice.toStringAsFixed(2)}",
+                                            "\$${currentOrder.productPrice.toStringAsFixed(2)}",
                                             style: GoogleFonts.montserrat(
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
@@ -143,9 +193,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               height: 25,
                               clipBehavior: Clip.antiAlias,
                               decoration: BoxDecoration(
-                                color: widget.order.delivered
+                                color: updatedOrder.delivered == true
                                     ? Color(0xFF3C55EF)
-                                    : widget.order.processing
+                                    : updatedOrder.processing == true
                                     ? Colors.purple
                                     : Colors.red,
                                 borderRadius: BorderRadius.circular(4),
@@ -157,9 +207,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                     left: 9,
                                     top: 2,
                                     child: Text(
-                                      widget.order.delivered
+                                      updatedOrder.delivered == true
                                           ? "Delivered"
-                                          : widget.order.processing
+                                          : updatedOrder.processing == true
                                           ? "Processing"
                                           : "Cancelled",
                                       style: GoogleFonts.montserrat(
@@ -178,7 +228,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             top: 115,
                             left: 298,
                             child: InkWell(
-                              onTap: () {},
+                              onTap: () async {
+                                await orderController.deleteOrder(
+                                  orderId: currentOrder.id,
+                                  context: context,
+                                );
+                                Navigator.pop(context);
+                              },
                               child: Image.asset(
                                 'assets/icons/delete.png',
                                 width: 20,
@@ -223,21 +279,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          "${widget.order.state} ${widget.order.city} ${widget.order.locality}",
+                          "${currentOrder.state} ${currentOrder.city} ${currentOrder.locality}",
                           style: GoogleFonts.lato(
                             letterSpacing: 1.5,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
-                          "To : ${widget.order.fullName}",
+                          "To : ${currentOrder.fullName}",
                           style: GoogleFonts.roboto(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          "Order ID : ${widget.order.id}",
+                          "Order ID : ${currentOrder.id}",
                           style: GoogleFonts.lato(fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -247,9 +303,48 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       TextButton(
-                        onPressed: () {},
+                        onPressed:
+                            updatedOrder.delivered ||
+                                updatedOrder.processing == false
+                            ? null
+                            : () async {
+                                await orderController
+                                    .updateDeliveryStatus(
+                                      id: updatedOrder.id,
+                                      context: context,
+                                    )
+                                    .whenComplete(() {
+                                      ref
+                                          .read(orderProvider.notifier)
+                                          .updateOrder(
+                                            currentOrder.id,
+                                            delivered: true,
+                                          );
+                                    });
+                                setState(() {
+                                  currentOrder = Order(
+                                    id: currentOrder.id,
+                                    fullName: currentOrder.fullName,
+                                    email: currentOrder.email,
+                                    state: currentOrder.state,
+                                    city: currentOrder.city,
+                                    locality: currentOrder.locality,
+                                    productName: currentOrder.productName,
+                                    productPrice: currentOrder.productPrice,
+                                    quantity: currentOrder.quantity,
+                                    category: currentOrder.category,
+                                    image: currentOrder.image,
+                                    buyerId: currentOrder.buyerId,
+                                    vendorId: currentOrder.vendorId,
+                                    processing: currentOrder.processing,
+                                    delivered: true,
+                                  );
+                                });
+                              },
                         child: Text(
-                          "Mark as Delivered?",
+                          updatedOrder.delivered
+                              ? "Delivered"
+                              : "Mark as Delivered?",
                           style: GoogleFonts.montserrat(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
@@ -258,9 +353,48 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                       SizedBox(width: 10),
                       TextButton(
-                        onPressed: () {},
+                        onPressed:
+                            updatedOrder.processing == false ||
+                                updatedOrder.delivered
+                            ? null
+                            : () async {
+                                await orderController
+                                    .cancelOrder(
+                                      id: currentOrder.id,
+                                      context: context,
+                                    )
+                                    .whenComplete(() {
+                                      ref
+                                          .read(orderProvider.notifier)
+                                          .updateOrder(
+                                            currentOrder.id,
+                                            processing: false,
+                                          );
+                                    });
+                                setState(() {
+                                  currentOrder = Order(
+                                    id: currentOrder.id,
+                                    fullName: currentOrder.fullName,
+                                    email: currentOrder.email,
+                                    state: currentOrder.state,
+                                    city: currentOrder.city,
+                                    locality: currentOrder.locality,
+                                    productName: currentOrder.productName,
+                                    productPrice: currentOrder.productPrice,
+                                    quantity: currentOrder.quantity,
+                                    category: currentOrder.category,
+                                    image: currentOrder.image,
+                                    buyerId: currentOrder.buyerId,
+                                    vendorId: currentOrder.vendorId,
+                                    processing: false,
+                                    delivered: currentOrder.delivered,
+                                  );
+                                });
+                              },
                         child: Text(
-                          "Cancel",
+                          updatedOrder.processing == false
+                              ? "Cancelled"
+                              : "Cancel",
                           style: GoogleFonts.montserrat(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
